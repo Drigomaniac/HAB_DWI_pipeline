@@ -1,0 +1,42 @@
+function split_names = syntax_split_folderpath(location_to_split,opt)
+%function split_names = syntax_split_folderpath(location_to_split)
+%   Decription: It will split the location_to_split variable base on the
+%   "filesep" variable and return it into a cell array called
+%   split_location.
+
+
+%Check what type is..
+if isstruct(location_to_split)
+    error(' "location_to_split" is of structure type. Make sure you fix this!');
+    %elseif ...
+end
+
+
+%Change from cell to char
+if iscell(location_to_split)
+    location_to_split=cell2char(location_to_split);
+end
+
+
+
+ind = find(location_to_split==filesep);
+if isempty(ind)
+    error('No filesep "/" found. Please check');
+end
+
+
+
+clear split_names
+for ii=1:size(ind,2)-1
+    split_names{ii}= location_to_split(ind(ii)+1:ind(ii+1)-1);
+end
+
+%Check if a filesep occurs at the beginning, if so add "/" or filesep at the
+%beginning
+if ind(1) == 1
+    split_names =[ '' split_names]; %Reserving a null space for the filesep
+end
+
+here=1;
+
+split_names=split_names(:);

@@ -1,0 +1,132 @@
+function [found, notfound, cmds_all] = dwi_rotate_bvecs(Sess_MRI_ID, global_paths, opt_pbs )
+%function [found, notfound, cmds_all] = dwi_rotate_bvecs(Sess_MRI_ID, global_paths, opt_pbs )
+%
+%   Description: Reorganize the Diffusion data into the std_rawnii_DIR
+%   output (Created by Rodrigo Perea).
+%   Sess_MRI_ID:    Sessions for each individual to be processed.
+%   global_paths:   Variables will be passed by a global cell structure class names "global_paths
+%                   that contains the gloabl initializiton variables for each project.
+%                   **Refer to the script MyPaths.m (or utilize it to pass it to
+%                   "global_paths"
+%
+%   opt_pbs:        Irrelevant so far. It may be use in the future
+
+
+%ARGUMENT CHECK:
+if  nargin<2
+    error(['Incorrect number of arguments for "' mfilename '". Please type: "help ' mfilename ' " ']);
+end
+
+% %If opt_pbs ==, then it will run at prompt and won't generate a *.sh file to submit to the cluster
+if nargin<3
+    opt_pbs = 0 ;
+end
+%%<---
+
+%% Retrieving variables from global_paths:
+rawnii_DIR=global_paths.dwi_rawnii_dir;
+std_rawnii_DIR=global_paths.dwi_fsl2std_rawnii_dir;
+%%<--
+
+%Confirming that all in arguments are cell type:
+Sess_MRI_ID=always_cell(Sess_MRI_ID);
+std_rawnii_DIR=always_cell(std_rawnii_DIR);
+rawnii_DIR=always_cell(rawnii_DIR);
+
+%GLOBAL VARIABLE INITIALIZATION:
+cc_notfound=1; % will idx the not found DWIs
+cc_found=1; % will idx the found DWIs
+
+found.bvecs={}; cc_bvecs_found=1;
+found.bvals={}; cc_bvals_found=1;
+
+notfound.bvecs={}; cc_bvecs_notfound=1;
+notfound.bvals={}; cc_bvals_notfound=1;
+
+vals_applied={''}; %~~>initializing the ID counter of bvals/bvecs that will be applied
+
+%Check whether you pass an array or a single Sess_dir_IN:
+if size(std_rawnii_DIR,1)>1
+    warning([ 'Sess_dir_IN  seems to be an array. Using the last element in the array']);
+    
+    %If an array, use the last elemnt (most likely, it should have the same values)
+    std_rawnii_DIR=std_rawnii_DIR(end,:);
+end
+
+idx_applied=1;
+for ii=1:numel(Sess_MRI_ID)
+    %For Session VARIABLE INITIALIZATION:
+    bvecs_FILE_IN=([ cell2char(rawnii_DIR) filesep 'raw_' cell2char(Sess_MRI_ID(ii)) '.bvecs' ]);
+    bvals_FILE_IN=([ cell2char(rawnii_DIR) filesep 'raw_' cell2char(Sess_MRI_ID(ii)) '.bvals' ]);
+    
+    bvecs_FILE_OUT=([ cell2char(std_rawnii_DIR) filesep 'fslstd_raw_' cell2char(Sess_MRI_ID(ii)) '.bvecs' ]);
+    bvals_FILE_OUT=([ cell2char(std_rawnii_DIR) filesep 'fslstd_raw_' cell2char(Sess_MRI_ID(ii)) '.bvals' ]);
+    
+    bvecs_matrix=([ cell2char(std_rawnii_DIR) filesep 'fslstd_raw_' cell2char(Sess_MRI_ID(ii)) '.matrix' ]);
+    
+    %Bvals copy only:
+    if exist(bvals_FILE_IN,'file')==0
+        notfound.bvals(cc_bvals_notfound)=Sess_MRI_ID(ii);
+        cc_bvals_notfound=cc_bvals_notfound+1;
+    else
+        found.bvals(cc_bvals_found)=Sess_MRI_ID(ii);
+        cc_bvals_found=cc_bvals_found+1;
+        if exist(bvals_FILE_OUT)==0
+            system([ 'cp ' bvals_FILE_IN ' ' bvals_FILE_OUT]);
+        end
+    end
+    
+    %Bvecs now:
+    if exist(bvecs_FILE_IN,'file')==0
+        notfound.bvecs(cc_bvecs_notfound)=Sess_MRI_ID(ii);
+        cc_bvecs_notfound=cc_bvecs_notfound+1;
+    else
+        disp(['In ' cell2char(Sess_MRI_ID(ii)) '...'])
+        found.bvecs(cc_bvecs_found)=Sess_MRI_ID(ii);
+        cc_bvecs_found=cc_bvecs_found+1;
+        if exist(bvecs_FILE_OUT)==0
+           disp(['Applying rotation to: ' cell2char(Sess_MRI_ID(ii)) '...'])
+           vals_applied{idx_applied}=cell2char(Sess_MRI_ID(ii));
+           idx_applied=idx_applied+1;
+           bvecs_old=load(bvecs_FILE_IN);
+           bvecs_matrix=load(bvecs_matrix);
+           %Applying the values
+           bvecs_new=bvecs_matrix(1:3,1:3)*bvecs_old';
+           
+           %And then tranpose it (for similar format)
+           bvecs_new=bvecs_new';
+           WriteDataToText(bvecs_new, bvecs_FILE_OUT,'w',' ',5);
+           clear bvecs_new bvecs_old bvecs_matrix
+        end
+    end
+    
+end
+
+
+%Writing information about bvecs/bvals into a txt file. 
+run_CMD_DIR=([cell2char(std_rawnii_DIR) filesep '.run_cmds']);
+system(['mkdir -p ' run_CMD_DIR]);
+run_filename=strcat(run_CMD_DIR, filesep,  'check_', mfilename, '_', date ,'.readme');
+
+%Opening the fileID
+fileID=fopen(run_filename,'w');
+fprintf(fileID,'\n \n');
+
+fprintf(fileID,[ '\t ' num2str(idx_applied-1) ' bvecs/bvals created: \n' ] );
+if strcmp(vals_applied{1},'')
+    fprintf(fileID,[ '\t' '\t No new value to apply. Nothing was rotated (maybe all Sessions passed exist?! \n']) ;
+else
+    for ii=1:numel(vals_applied)
+        fprintf(fileID,[ '\t \t \t ' cell2char(vals_applied(ii)) ' \n']) ;
+    end
+end
+%Closing the fileID
+fclose(fileID);
+
+
+disp(sprintf([ '\n~~~\n ~~~' mfilename ' Done! \n' ...
+    '  Make sure you check: \n ' run_filename  ' for which files were executed' ...
+    '\n\n ~~~ \n~~~']));
+
+
+
