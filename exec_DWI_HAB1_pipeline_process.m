@@ -11,11 +11,11 @@ pth=MyPaths('hab1');
 %Then get the Session IDs:
 [~ , Sess_all_and_BAD ] = dir_wfp('/cluster/sperling/HAB/Project1/Sessions/1*');
 %[~ , badSessCross ] = dir_wfp('/cluster/sperling/HAB/Project1/Sessions/1*4TT*');
-badSessCross  = ReadInFile('/cluster/sperling/HAB/Project1/DWIs_30b700/post_process/tbss_skel/lists/CrossHAB_n284_unfiltered.txt','');
+badSessCross  = ReadInFile('/cluster/sperling/HAB/Project1/DWIs_30b700/other_dev/lists/CrossHAB_n284_unfiltered.txt','');
 
 %FILTERING BAD SESSIONS THAT DO NOT CONTAIN DWIs:
-Sess = dwi_filter_out(Sess_all_and_BAD,'/cluster/sperling/HAB/Project1/DWIs_30b700/pre_process/No_DWI_data_141216.txt');
-SessCross = dwi_filter_out(badSessCross,'/cluster/sperling/HAB/Project1/DWIs_30b700/pre_process/No_DWI_data_141216.txt');
+Sess = dwi_filter_out(Sess_all_and_BAD,'/cluster/sperling/HAB/Project1/DWIs_30b700/other_dev/lists/No_DWI_data_141216.txt');
+SessCross = dwi_filter_out(badSessCross,'/cluster/sperling/HAB/Project1/DWIs_30b700/other_dev/lists/No_DWI_data_141216.txt');
 
 %Filtering the session if they have FA output or not
 [ Sess_noFA, Sess_FA ] =filterSess_by_FA(Sess, pth);
@@ -134,12 +134,6 @@ end
 %APPLYING NON-LINEAR COREGISTRATION USING ANTS
 %Change params for further processing...
 % [ ants_found, ants_notfound, cmds_ants ] = dwi_ants(Sess,pth,1);
-
-%GENERATE THE MEAN_FA and MEAN_FA_MASK
-%IMAGES (as part of the
-%tbss_processing)
-%[cmds_meanFAs] = dwi_create_allFA_meanFA(SessCross, pth);
-
 
 %SKELETONIZE ALL IMAGES
 %[cmds_skeletonize ] = dwi_skeletonise(Sess, pth, 0);

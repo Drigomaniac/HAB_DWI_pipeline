@@ -19,6 +19,9 @@ FA_dir=global_pths.dwi_dtifit_dir;
 idx_FA=1;
 idx_noFA=1;
 
+noFA_SessID={};
+FA_exist_session={};
+
 %For loop to find the bad idxes
 for jj=1:numel(Sess)
     %FA filename:

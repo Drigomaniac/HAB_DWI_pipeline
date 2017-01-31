@@ -176,15 +176,15 @@ for ii=1:numel(Sess_MRI_ID)
             flag_Sess_ok=1;
             what='nii_IN file ';
         elseif exist(bvecs_IN,'file') == 0
-            flag_Sess_ok=2;
+            flag_Sess_ok=1;
             what='bvecs file ';
         elseif exist(bvals_IN,'file') == 0
-            flag_Sess_ok=3;
+            flag_Sess_ok=1;
             what='bvals file ';
         end
         %and report it...
         if flag_Sess_ok==1
-            warning([cell2char(Sess_MRI_ID(ii)) ' and ' what ' is missing!'])
+            warning([ ' In ' cell2char(Sess_MRI_ID(ii)) ' the ' what ' is missing!'])
             error_Sess(error_counter)=Sess_MRI_ID(ii);
             error_counter=error_counter+1;
         else
@@ -198,6 +198,8 @@ for ii=1:numel(Sess_MRI_ID)
                 cmd(cc_cmds)={[ '\npaste '  bvals_IN ' ' bvecs_IN ...
                     ' | sed ''' 's/\t/ /g' '''' ' > ' btable_OUT ]};
                 cc_cmds=cc_cmds+1;
+                local_flag=1;
+                gen_flag=1;
             end
             
             if exist(src_OUT,'file')== 0 %if skel doesn't exist...
@@ -208,6 +210,7 @@ for ii=1:numel(Sess_MRI_ID)
                     nii_IN ' --b_table=' btable_OUT ' --output=' src_OUT ]};
                 cc_cmds=cc_cmds+1;
                 local_flag=1;
+                gen_flag=1;
             end
             
             if exist(fib_OUT,'file')== 0 %if skel doesn't exist...
@@ -215,17 +218,18 @@ for ii=1:numel(Sess_MRI_ID)
                     cell2char(Sess_MRI_ID(ii)) ' ...''']};
                 cc_cmds=cc_cmds+1;
                 cmds(cc_cmds)={[ '\n' DSISTUDIO_BIN '  --action=rec --source=' ...
-                    src_OUT ' --method=4 --param0=1.25 --num_fiber=2 --mask=' mask_IN ]};
+                    src_OUT ' --method=4 --param0=1.25 --num_fiber=3 --mask=' mask_IN ]};
                 cc_cmds=cc_cmds+1;
                 
                 cmds(cc_cmds)={['\n' DSISTUDIO_BIN '  --action=exp --source=' ...
                     fib_OUT ' --export=gfa,nqa0,nqa1' ]};
                 cc_cmds=cc_cmds+1;
                 local_flag=1;
+                gen_flag=1;
             end
         end
     end
-      if local_flag==1;
+    if local_flag==1;
         %Copying an echo command at the beginning of cc_cmds array:
         echoer(1)={[ '### Beg of ' mfilename  '.m in ' cell2char(Sess_MRI_ID(ii)) ' \n'] };
         echoer(2)={['echo  Running dsi_studio GQI in session: ' cell2char(Sess_MRI_ID(ii)) '...']};
@@ -240,7 +244,7 @@ for ii=1:numel(Sess_MRI_ID)
         %With or WITHOUT PBSUBMIT
         if opt_pbs == 1
             pbs_adder_beg=[ '\n\npbsubmit -c " \n' ]  ;
-            pbs_adder_end=['  -l nodes=1:ppn=1,vmem=7gb'];
+            pbs_adder_end=[' " -l nodes=1:ppn=1,vmem=7gb'];
             cmds= [pbs_adder_beg cmds pbs_adder_end];
             cc_cmds=cc_cmds+2;
         end
